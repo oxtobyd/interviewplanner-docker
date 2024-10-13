@@ -8,72 +8,17 @@ const cors = require('cors');
 const app = express();
 app.use(cors());
 
+// Serve static files from the 'dist' folder (adjust path if necessary)
+app.use(express.static(path.join(__dirname, '..', 'dist')));
+
+// Define a route for the root path
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'dist', 'index.html')); // Ensure this points to your frontend entry point
+});
+
 const upload = multer({ storage: multer.memoryStorage() });
 
-function splitName(fullName) {
-  const nameParts = fullName.trim().split(/\s+/);
-  if (nameParts.length === 1) return { surname: nameParts[0], forename: '' };
-  const surname = nameParts.pop();
-  const forename = nameParts.join(' ');
-  return { surname, forename };
-}
-
-function extractField(text, fieldName) {
-  const regex = new RegExp(`${fieldName}\\s*(.+)`);
-  const match = text.match(regex);
-  if (!match) return '';
-
-  let value = match[1].trim();
-  
-  // Special handling for Diocese
-  if (fieldName === 'Diocese') {
-    const dioceseParts = value.split(/\s+/);
-    return dioceseParts[dioceseParts.length - 1]; // Return the last word
-  }
-
-  return value;
-}
-
-function extractEmails(text) {
-  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
-  return text.match(emailRegex) || [];
-}
-
-function extractEmail(text) {
-  const contactDetailsRegex = /Contact Details\s*([\s\S]*?)\s*(?:\n\n|\Z)/i;
-  const contactDetailsMatch = text.match(contactDetailsRegex);
-  
-  if (contactDetailsMatch) {
-    const contactDetailsBlock = contactDetailsMatch[1];
-    const emails = extractEmails(contactDetailsBlock);
-    
-    if (emails.length > 0) {
-      return emails[0];
-    }
-  }
-  
-  // Fallback: search for email in the entire text
-  const allEmails = extractEmails(text);
-  return allEmails.length > 0 ? allEmails[0] : '';
-}
-
-function extractDDOEmail(text) {
-  const ddoDetailsRegex = /Contact DDO\s*([\s\S]*?)(?:\n\n|\Z)/i;
-  const ddoDetailsMatch = text.match(ddoDetailsRegex);
-  
-  if (ddoDetailsMatch) {
-    const ddoDetailsBlock = ddoDetailsMatch[1];
-    const emails = extractEmails(ddoDetailsBlock);
-    
-    if (emails.length > 0) {
-      return emails[0];
-    }
-  }
-  
-  // Fallback: search for email in the entire text
-  const allEmails = extractEmails(text);
-  return allEmails.length > 1 ? allEmails[1] : '';
-}
+// Your existing utility functions...
 
 app.post('/api/extract-pro-forma-data', upload.single('proForma'), async (req, res) => {
   try {
