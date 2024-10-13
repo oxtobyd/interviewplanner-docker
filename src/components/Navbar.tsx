@@ -1,8 +1,21 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
-import { Calendar, Users, UserCheck, FileText, Home, UserPlus, Clock, FileQuestion, ClipboardList } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Calendar, Users, UserCheck, FileText, Home, UserPlus, Clock, FileQuestion, ClipboardList, LogOut } from 'lucide-react'
+import { auth } from '../firebase'
+import { signOut } from 'firebase/auth'
 
 const Navbar: React.FC = () => {
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+      navigate('/login')
+    } catch (error) {
+      console.error('Failed to log out', error)
+    }
+  }
+
   return (
     <nav className="bg-white shadow-md">
       <div className="container mx-auto px-4">
@@ -17,6 +30,10 @@ const Navbar: React.FC = () => {
             <NavLink to="/interviews" icon={<Calendar />} text="Interviews" />
             <NavLink to="/adviser-report" icon={<ClipboardList />} text="Reports" />
             <NavLink to="/panel-dates" icon={<Clock />} text="Panels" />
+            <button onClick={handleLogout} className="flex items-center text-gray-600 hover:text-blue-600">
+              <LogOut className="h-5 w-5 mr-1" />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
       </div>
