@@ -41,7 +41,7 @@ const Login: React.FC = () => {
             <Calendar className="h-20 w-20 text-blue-600" /> {/* Planner icon */}
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Interview Planner
+            Candidates Panel Planner
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Sign in to access your account

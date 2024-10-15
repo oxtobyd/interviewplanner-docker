@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Calendar, Users, UserCheck, FileText, Home, UserPlus, Clock, FileQuestion, ClipboardList, LogOut } from 'lucide-react'
+import { Calendar, Users, Home, Clock, ClipboardList, LogOut } from 'lucide-react'
 import { auth } from '../firebase'
 import { signOut } from 'firebase/auth'
 
@@ -22,7 +22,7 @@ const Navbar: React.FC = () => {
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center">
             <Calendar className="h-8 w-8 text-blue-600 mr-2" />
-            <span className="text-xl font-semibold">Interview Planner</span>
+            <span className="text-xl font-semibold">Candidates Panel Planner</span>
           </Link>
           <div className="flex space-x-4">
             <NavLink to="/" icon={<Home />} text="Dashboard" />

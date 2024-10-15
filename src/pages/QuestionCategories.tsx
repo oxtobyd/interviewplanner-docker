@@ -14,12 +14,31 @@ interface QuestionCategory {
   attributes: Attribute[];
   generalCategory: 'Selection Qualities' | 'Formation Qualities' | 'Selection Criteria' | 'Formation Criteria';
   answerTheQuestion: boolean;
+  requiredPaperwork: string[];
 }
 
 const truncateText = (text: string, maxLength: number) => {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength) + '...';
 };
+
+// Add this near the top of your file, outside of the component function
+const paperworkOptions = [
+  "Proforma for Submission to the Candidates Panel",
+  "CP Reference from Incumbent - Church Leader",
+  "CP Reference from outside Church context",
+  "CP Registration Form",
+  "Ethnic Diversity Form",
+  "Stage 2/TODP/BAP Report",
+  "TEI Report",
+  "Reference from Provincial Anglican official",
+  "Training Completed Information",
+  "Additional Reference (denominational/Provincial official)",
+  "Others Reports (those who have mentored or worked with Candidate)",
+  "PTL Evidence",
+  "TEI Supporting Statement",
+  "Other Paperwork"
+];
 
 const QuestionCategories: React.FC = () => {
   const [categories, setCategories] = useState<QuestionCategory[]>([]);
@@ -29,6 +48,7 @@ const QuestionCategories: React.FC = () => {
     attributes: [],
     generalCategory: 'Selection Qualities',
     answerTheQuestion: false,
+    requiredPaperwork: [], // Ensure this is initialized as an empty array
   });
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [attributesInput, setAttributesInput] = useState('');
@@ -66,18 +86,13 @@ const QuestionCategories: React.FC = () => {
         .filter(attr => attr !== '')
         .map(attr => ({ id: crypto.randomUUID(), name: attr }));
       
-      // Log the formData before submission
-      console.log('Form data before submission:', formData);
-
       const dataToSubmit = {
         category: formData.category,
         attributes,
         generalCategory: formData.generalCategory,
-        answerTheQuestion: formData.answerTheQuestion ?? false, // Provide a default value if undefined
+        answerTheQuestion: formData.answerTheQuestion ?? false,
+        requiredPaperwork: formData.requiredPaperwork || [], // Ensure this is always an array
       };
-
-      // Log the dataToSubmit
-      console.log('Data to submit:', dataToSubmit);
 
       if (editingId) {
         await updateDoc(doc(db, 'questionCategories', editingId), dataToSubmit);
@@ -87,8 +102,6 @@ const QuestionCategories: React.FC = () => {
       resetForm();
     } catch (error) {
       console.error("Error submitting form:", error);
-      // Log the full error object
-      console.log('Full error object:', JSON.stringify(error, null, 2));
     }
   };
 
@@ -99,6 +112,7 @@ const QuestionCategories: React.FC = () => {
       attributes: category.attributes,
       generalCategory: category.generalCategory,
       answerTheQuestion: category.answerTheQuestion,
+      requiredPaperwork: category.requiredPaperwork || [], // Use an empty array if requiredPaperwork is undefined
     });
     setAttributesInput(category.attributes.map(attr => attr.name).join('; '));
   };
@@ -126,12 +140,22 @@ const QuestionCategories: React.FC = () => {
       attributes: [],
       generalCategory: 'Selection Qualities',
       answerTheQuestion: false,
+      requiredPaperwork: [], // Add this line
     });
     setAttributesInput('');
   };
 
   const handleAttributeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAttributesInput(e.target.value);
+  };
+
+  const handlePaperworkChange = (option: string) => {
+    setFormData(prev => ({
+      ...prev,
+      requiredPaperwork: prev.requiredPaperwork.includes(option)
+        ? prev.requiredPaperwork.filter(item => item !== option)
+        : [...prev.requiredPaperwork, option]
+    }));
   };
 
   return (
@@ -185,6 +209,25 @@ const QuestionCategories: React.FC = () => {
               <label htmlFor="answerTheQuestion" className="ml-2 block text-sm font-medium text-gray-700">
                 Answer the Question
               </label>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Required Paperwork:</label>
+            <div className="grid grid-cols-2 gap-2">
+              {paperworkOptions.map((option) => (
+                <div key={option} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={`paperwork-${option}`}
+                    checked={formData.requiredPaperwork?.includes(option) || false}
+                    onChange={() => handlePaperworkChange(option)}
+                    className="form-checkbox h-5 w-5 text-blue-600"
+                  />
+                  <label htmlFor={`paperwork-${option}`} className="ml-2 text-sm">
+                    {option}
+                  </label>
+                </div>
+              ))}
             </div>
           </div>
         </div>

@@ -65,6 +65,7 @@ interface Candidate {
   proFormaName?: string;
   initialPanelSecretary: string;
   letterGenerated: boolean;
+  receivedPaperwork: { [key: string]: boolean }; // Add this line
 }
 
 interface NDA {
@@ -161,6 +162,8 @@ const Candidates: React.FC = () => {
   const [dioceseWarning, setDioceseWarning] = useState<string | null>(null);
   const [missingTemplateInfo, setMissingTemplateInfo] = useState<{ category: string, name: string } | null>(null);
   const [localFiles, setLocalFiles] = useState<CandidateFile[]>([]);
+  const [requiredPaperwork, setRequiredPaperwork] = useState<string[]>([]);
+  const [urlPanelDate, setUrlPanelDate] = useState<string | null>(null);
 
   const paperworkReceived = watch("paperworkReceived");
 
@@ -171,6 +174,40 @@ const Candidates: React.FC = () => {
       .join(' ');
   };
 
+  // Add this function to fetch required paperwork when question category changes
+  const fetchRequiredPaperwork = async (category: string) => {
+    const q = query(collection(db, "questionCategories"), where("category", "==", category));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const categoryData = querySnapshot.docs[0].data();
+      setRequiredPaperwork(categoryData.requiredPaperwork || []);
+      
+      // Get current values
+      const currentValues = getValues();
+      
+      // Only set checkboxes for existing data
+      const newReceivedPaperwork = (categoryData.requiredPaperwork || []).reduce((acc, item) => {
+        acc[item] = currentValues.receivedPaperwork?.[item] || false;
+        return acc;
+      }, {} as Record<string, boolean>);
+      
+      setValue("receivedPaperwork", newReceivedPaperwork);
+    } else {
+      setRequiredPaperwork([]);
+      setValue("receivedPaperwork", {});
+    }
+  };
+
+  // Update the useEffect hook that watches for question category changes
+  useEffect(() => {
+    const subscription = watch((value, { name }) => {
+      if (name === "questionCategory" && value.questionCategory) {
+        fetchRequiredPaperwork(value.questionCategory);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch]);
+
   useEffect(() => {
     console.log("Effect triggered: Fetching candidates based on URL params");
     const searchParams = new URLSearchParams(location.search);
@@ -178,6 +215,14 @@ const Candidates: React.FC = () => {
     const paperworkFilter = searchParams.get("paperwork");
     const interviewsFilter = searchParams.get("interviews");
     const editCandidateId = searchParams.get("edit");
+
+    // Set urlPanelDate based on URL parameter
+    setUrlPanelDate(panelDateId);
+
+    // If selectedPanelDate is not set, use the URL parameter
+    if (!selectedPanelDate && panelDateId) {
+      setSelectedPanelDate(panelDateId);
+    }
 
     let candidatesQuery = collection(db, "candidates");
 
@@ -309,6 +354,12 @@ const Candidates: React.FC = () => {
     }
   }, [editingId, candidates]);
 
+  useEffect(() => {
+    if (urlPanelDate && urlPanelDate !== selectedPanelDate) {
+      setSelectedPanelDate(urlPanelDate);
+    }
+  }, [urlPanelDate]);
+
   const handleProFormaChange = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -368,13 +419,41 @@ const Candidates: React.FC = () => {
     }
   };
 
-  const onSubmit: SubmitHandler<Candidate> = async (data) => {
-    setLoading(true);
-    setIsUploading(true);
-    setError(null);
-    setSubmitSuccess(false);
+  const resetFormAndStates = () => {
+    reset({
+      surname: "",
+      forename: "",
+      email: "",
+      questionCategory: "",
+      paperworkReceived: "",
+      paperworkNotes: "",
+      diocese: "",
+      sponsoringBishop: "",
+      ddoName: "",
+      ddoEmail: "",
+      ndaId: "",
+      panelDateId: "",
+      questionAsked: "",
+      revisedQuestion: "",
+      initialPanelSecretary: "",
+      receivedPaperwork: {},
+    });
+    setRequiredPaperwork([]);
+    setFiles([]);
+    setUploadedFiles([]);
+    setProFormaFile(null);
+    setProFormaUrl(null);
+    setExistingProFormaUrl(null);
+    if (proFormaRef.current) {
+      proFormaRef.current.value = "";
+    }
+  };
 
+  const onSubmit: SubmitHandler<Candidate> = async (data) => {
     try {
+      setLoading(true);
+      setError(null);
+
       let candidateId = editingId;
       if (!candidateId) {
         const newCandidateRef = doc(collection(db, "candidates"));
@@ -409,43 +488,22 @@ const Candidates: React.FC = () => {
         proFormaUrl,
         proFormaName,
         files: [...uploadedFiles, ...(data.files || [])],
+        paperworkReceived: data.paperworkReceived,
+        paperworkNotes: data.paperworkNotes,
+        receivedPaperwork: data.receivedPaperwork || {},
       };
 
       if (editingId) {
         await updateDoc(doc(db, "candidates", editingId), candidateData);
       } else {
-        await setDoc(doc(db, "candidates", candidateId), candidateData);
+        await addDoc(collection(db, "candidates"), candidateData);
       }
 
       // Reset form and states
-      reset({
-        surname: "",
-        forename: "",
-        email: "",
-        questionCategory: "",
-        paperworkReceived: "",
-        paperworkNotes: "",
-        diocese: "",
-        sponsoringBishop: "",
-        ddoName: "",
-        ddoEmail: "",
-        ndaId: "",
-        panelDateId: "",
-        questionAsked: "",
-        revisedQuestion: "",
-        initialPanelSecretary: "",
-      });
-      setFiles([]);
-      setUploadedFiles([]);
-      setProFormaFile(null);
-      setProFormaUrl(null);
-      setExistingProFormaUrl(null);
+      resetFormAndStates();
       setEditingId(null);
       setSubmitSuccess(true);
 
-      if (proFormaRef.current) {
-        proFormaRef.current.value = "";
-      }
     } catch (err) {
       console.error("Error saving candidate:", err);
       setError("An error occurred while saving the candidate");
@@ -455,22 +513,42 @@ const Candidates: React.FC = () => {
     }
   };
 
-  const editCandidate = (candidate: Candidate) => {
+  const editCandidate = async (candidate: Candidate) => {
     console.log("Editing candidate:", candidate.id);
     setEditingId(candidate.id);
-    reset({
-      ...candidate,
-      ndaId: candidate.ndaId || "",
-      panelDateId: candidate.panelDateId || "",
-    });
-    setUploadedFiles(candidate.files || []);
-    setExistingProFormaUrl(candidate.proFormaUrl || null);
-    if (candidate.proFormaUrl && candidate.proFormaName) {
-      setProFormaUrl(candidate.proFormaUrl);
-      //
+    
+    // Reset everything first
+    resetFormAndStates();
+
+    // Fetch the latest data for the candidate
+    const candidateDoc = await getDoc(doc(db, "candidates", candidate.id));
+    if (candidateDoc.exists()) {
+      const latestData = candidateDoc.data() as Candidate;
+      
+      // Now set the form with the latest data
+      reset({
+        ...latestData,
+        ndaId: latestData.ndaId || "",
+        panelDateId: latestData.panelDateId || "",
+        receivedPaperwork: latestData.receivedPaperwork || {},
+      });
+
+      setUploadedFiles(latestData.files || []);
+      setExistingProFormaUrl(latestData.proFormaUrl || null);
+      if (latestData.proFormaUrl && latestData.proFormaName) {
+        setProFormaUrl(latestData.proFormaUrl);
+      } else {
+        setProFormaFile(null);
+        setProFormaUrl(null);
+      }
+      setValue("paperworkReceived", latestData.paperworkReceived || "");
+      setValue("paperworkNotes", latestData.paperworkNotes || "");
+
+      // Fetch required paperwork for this category
+      await fetchRequiredPaperwork(latestData.questionCategory);
     } else {
-      setProFormaFile(null);
-      setProFormaUrl(null);
+      console.error("Candidate not found");
+      setError("Candidate not found");
     }
 
     // Scroll to the top of the form
@@ -1053,9 +1131,10 @@ const Candidates: React.FC = () => {
             Filter by Panel Date:
           </label>
           <select
-            value={selectedPanelDate}
+            id="panelDateFilter"
+            value={selectedPanelDate || ""}
             onChange={handlePanelDateChange}
-            className="input w-64"
+            className="input w-full"
           >
             <option value="">All Panel Dates</option>
             {panelDates.map((panelDate) => (
@@ -1134,114 +1213,141 @@ const Candidates: React.FC = () => {
               Paperwork and Files
             </legend>
             <div className="flex flex-col space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-start space-y-3 sm:space-y-0 sm:space-x-3">
-                <div className="w-full sm:w-2/3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Pro-Forma:
-                  </label>
-                  <div className="flex flex-col">
-                    <div className="flex items-center">
-                      <input
-                        type="file"
-                        onChange={handleProFormaChange}
-                        ref={proFormaRef}
-                        className="input flex-grow text-sm"
-                      />
-                      {(proFormaFile || existingProFormaUrl) && (
-                        <button
-                          type="button"
-                          onClick={removeProForma}
-                          className="text-red-500 ml-2"
-                        >
-                          <X className="h-5 w-5" />
-                        </button>
-                      )}
-                    </div>
-                    {(proFormaUrl || existingProFormaUrl) && (
-                      <div className="flex items-center text-sm text-gray-600 mt-1">
-                        <FileText className="h-4 w-4 mr-2" />
-                        <a
-                          href={proFormaUrl || existingProFormaUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 truncate"
-                        >
-                          {proFormaFile?.name || watch("proFormaName")}
-                        </a>
-                      </div>
+              <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Pro-Forma:
+                </label>
+                <div className="flex flex-col">
+                  <div className="flex items-center">
+                    <input
+                      type="file"
+                      onChange={handleProFormaChange}
+                      ref={proFormaRef}
+                      className="input flex-grow text-sm"
+                    />
+                    {(proFormaFile || existingProFormaUrl) && (
+                      <button
+                        type="button"
+                        onClick={removeProForma}
+                        className="text-red-500 ml-2"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
                     )}
                   </div>
-                </div>
-                <div className="w-full sm:w-1/3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Paperwork Received:
-                  </label>
-                  <select
-                    {...register("paperworkReceived")}
-                    className="input w-full"
-                  >
-                    <option value="">Select</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                    <option value="Partial">Partial</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Files:
-                </label>
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  multiple
-                  className="input w-full text-sm"
-                />
-                {isUploading && (
-                  <div className="mt-2 text-sm text-blue-500">
-                    <svg
-                      className="animate-spin h-5 w-5 mr-3 inline"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Uploading files...
-                  </div>
-                )}
-                <div className="mt-1 text-sm">
-                  {localFiles.map((file, index) => (
-                    <div key={index} className="flex items-center">
-                      <Paperclip className="h-3 w-3 mr-1" />
+                  {(proFormaUrl || existingProFormaUrl) && (
+                    <div className="flex items-center text-sm text-gray-600 mt-1">
+                      <FileText className="h-4 w-4 mr-2" />
                       <a
-                        href={file.url}
+                        href={proFormaUrl || existingProFormaUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-500 truncate"
                       >
-                        {file.name}
+                        {proFormaFile?.name || watch("proFormaName")}
                       </a>
-                      <button
-                        type="button"
-                        onClick={() => removeUploadedFile(file)}
-                        className="ml-1 text-red-500"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
                     </div>
-                  ))}
+                  )}
                 </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row sm:items-start space-y-3 sm:space-y-0 sm:space-x-3">
+                <div className="w-full sm:w-1/2 border border-gray-200 p-2 rounded">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Files:
+                  </label>
+                  <div className="flex items-center mb-2">
+                    <input
+                      type="file"
+                      onChange={handleFileChange}
+                      multiple
+                      className="input flex-grow text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1 max-h-60 overflow-y-auto text-xs mt-2">
+                    {localFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <div className="flex items-center overflow-hidden">
+                          <Paperclip className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span className="break-all">{file.name}</span>
+                        </div>
+                        <button
+                          onClick={() => removeUploadedFile(file)}
+                          className="text-red-500 hover:text-red-700 ml-2 flex-shrink-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {files.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <div className="flex items-center overflow-hidden">
+                          <Paperclip className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span className="break-all">{file.name}</span>
+                        </div>
+                        <button
+                          onClick={() => removeFile(index)}
+                          className="text-red-500 hover:text-red-700 ml-2 flex-shrink-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="w-full sm:w-1/2 border border-gray-200 p-2 rounded flex flex-col">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Required Paperwork:
+                    </label>
+                    {requiredPaperwork.length > 0 ? (
+                      <div className="space-y-1 text-xs">
+                        {requiredPaperwork.map((item) => (
+                          <div key={item} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id={`paperwork-${item}`}
+                              {...register(`receivedPaperwork.${item}`)}
+                              className="form-checkbox h-3 w-3 text-blue-600"
+                            />
+                            <label htmlFor={`paperwork-${item}`} className="ml-2">
+                              {item}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500">No required paperwork for this category.</p>
+                    )}
+                  </div>
+                  
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Paperwork Received:
+                    </label>
+                    <select
+                      {...register("paperworkReceived")}
+                      className="input w-full text-sm"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                      <option value="Partial">Partial</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Paperwork Notes:
+                </label>
+                <textarea
+                  {...register("paperworkNotes")}
+                  className="input w-full h-12"
+                  placeholder="Enter any notes about the paperwork here"
+                  ref={paperworkNotesRef}
+                />
               </div>
             </div>
           </fieldset>
