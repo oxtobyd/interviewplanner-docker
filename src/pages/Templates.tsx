@@ -29,17 +29,15 @@ const candidateFields = [
 ]
 
 const interviewFields = [
-  'candidateName', 'adviserNames', 'category', 'panelDate', 
+  'adviserNames', 'category', 'panelDate', 
   'leadAdviserName', 'leadAdviser.title', 'leadAdviser.email', 'leadAdviser.mobile', 'leadAdviser.biography',
-  'otherAdviserName', 'otherAdviser.title', 'otherAdviser.email', 'otherAdviser.mobile', 'otherAdviser.biography'
+  '2ndleadAdviserName', '2ndleadAdviser.title', '2ndleadAdviser.email', '2ndleadAdviser.mobile', '2ndleadAdviser.biography',
+  'otherAdviserName', 'otherAdviser.title', 'otherAdviser.biography',
+  '2ndotherAdviserName', '2ndotherAdviser.title', '2ndotherAdviser.biography'
 ]
 
 const ndaFields = [
   'title', 'name', 'email'
-]
-
-const adviserFields = [
-  'title', 'name', 'email', 'mobile', 'biography'
 ]
 
 const Templates: React.FC = () => {
@@ -430,20 +428,6 @@ const Templates: React.FC = () => {
                     onClick={() => insertPlaceholder(field)}
                   >
                     {field}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="mb-2">
-              <h3 className="font-medium mb-1 text-sm">Adviser Fields</h3>
-              <ul className="space-y-0.5 text-sm">
-                {adviserFields.map(field => (
-                  <li 
-                    key={field} 
-                    className="cursor-pointer text-blue-600 hover:underline"
-                    onClick={() => insertPlaceholder(`adviser.${field}`)}
-                  >
-                    adviser.{field}
                   </li>
                 ))}
               </ul>
