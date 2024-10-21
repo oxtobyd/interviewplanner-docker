@@ -390,22 +390,19 @@ const AdviserReport: React.FC = () => {
     setValue('questionCategory', report.questionCategory);
     setValue('responseToQuestion', report.responseToQuestion);
 
-    // Set new attribute values
-    if (report.attributes) {
-      Object.entries(report.attributes).forEach(([key, attr]) => {
-        setValue(`attributes.${key}`, attr.value.toString());
-      });
-    }
-
-    // Rest of the function remains the same
-    // ...
-
     // Set other fields as needed
     const questionCategory = questionCategories.find(qc => qc.id === report.questionCategory);
     if (questionCategory) {
       setSelectedQuestionCategory(questionCategory);
       setSelectedAttributes(questionCategory.attributes);
       setShowResponseToQuestion(questionCategory.answerTheQuestion);
+    }
+
+    // Set new attribute values
+    if (report.attributes) {
+      Object.entries(report.attributes).forEach(([attributeId, attributeData]) => {
+        setValue(`attributes.${attributeId}`, attributeData.value);
+      });
     }
 
     // Set selected candidate and panel date
