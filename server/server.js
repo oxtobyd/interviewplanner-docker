@@ -18,7 +18,62 @@ app.get('/', (req, res) => {
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Your existing utility functions...
+// Add these utility functions
+const extractField = (text, fieldName) => {
+  const regex = new RegExp(`${fieldName}[:\\s]+(.+)`, 'i');
+  const match = text.match(regex);
+  return match ? match[1].trim() : '';
+};
+
+const splitName = (fullName) => {
+  const parts = fullName.split(' ');
+  const surname = parts.pop();
+  const forename = parts.join(' ');
+  return { surname, forename };
+};
+
+const extractName = (text) => {
+  return extractField(text, 'Name');
+};
+
+const extractDiocese = (text) => {
+  const diocese = extractField(text, 'Diocese');
+  return diocese.replace('Diocese', '').trim();
+};
+
+const extractSponsoringBishop = (text) => {
+  return extractField(text, 'Sponsoring Bishop');
+};
+
+const extractDDOName = (text) => {
+  const match = text.match(/Contact DDO\s*(.*?)(?=\s*email:|\s*Phone:)/i);
+  return match ? match[1].trim() : '';
+};
+
+const extractDDOEmail = (text) => {
+  const match = text.match(/email:\s*([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/i);
+  return match ? match[1].trim() : '';
+};
+
+const extractQuestionToPanel = (text) => {
+  const questionSection = text.match(/3\.\s*Question to the Panel([\s\S]*?)4\./);
+  return questionSection ? questionSection[1].trim() : '';
+};
+
+const extractContactNumber = (text) => {
+  const match = text.match(/Contact Number:[\s\S]*?(\d[\d\s]*\d)/);
+  return match ? match[1].replace(/\s/g, '') : '';
+};
+
+const extractDDOPhone = (text) => {
+  const match = text.match(/Phone:\s*(\d+\s*\d+)/i);
+  return match ? match[1].replace(/\s/g, '') : '';
+};
+
+const extractEmail = (text) => {
+  const match = text.match(/Email:[\s\S]*?([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
+  return match ? match[1].trim() : '';
+};
 
 app.post('/api/extract-pro-forma-data', upload.single('proForma'), async (req, res) => {
   try {
@@ -39,24 +94,23 @@ app.post('/api/extract-pro-forma-data', upload.single('proForma'), async (req, r
 
     console.log('Extracted text:', text);
 
-    const fullName = extractField(text, 'Name');
+    const fullName = extractName(text);
     const { surname, forename } = splitName(fullName);
 
-    const candidateEmail = extractEmail(text);
-    const ddoEmail = extractDDOEmail(text);
-
-    console.log('Extracted candidate email:', candidateEmail);
-    console.log('Extracted DDO email:', ddoEmail);
+    const contactNumber = extractContactNumber(text);
+    console.log('Extracted contact number:', contactNumber);
 
     const extractedData = {
       surname,
       forename,
-      email: candidateEmail,
-      diocese: extractField(text, 'Diocese'),
-      ddoName: extractField(text, 'Contact DDO'),
-      ddoEmail: ddoEmail,
-      sponsoringBishop: extractField(text, 'Sponsoring Bishop'),
-      questionToThePanel: extractField(text, 'Question to the Panel'),
+      email: extractEmail(text),
+      diocese: extractDiocese(text),
+      ddoName: extractDDOName(text),
+      ddoEmail: extractDDOEmail(text),
+      ddoPhone: extractDDOPhone(text),
+      sponsoringBishop: extractSponsoringBishop(text),
+      questionToThePanel: extractQuestionToPanel(text),
+      contactNumber: contactNumber,
     };
 
     console.log('Extracted data:', extractedData);
