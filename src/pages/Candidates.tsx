@@ -135,6 +135,7 @@ const Candidates: React.FC = () => {
   } = useForm<Candidate>({
     defaultValues: {
       panelDateId: "",
+      paperworkNotes: "",
     },
   });
   const [files, setFiles] = useState<File[]>([]);
@@ -483,15 +484,26 @@ const Candidates: React.FC = () => {
         uploadedFiles.push({ name: file.name, url });
       }
 
-      const candidateData = {
+      const candidateData: Partial<Candidate> = {
         ...data,
         proFormaUrl,
         proFormaName,
         files: [...uploadedFiles, ...(data.files || [])],
         paperworkReceived: data.paperworkReceived,
-        paperworkNotes: data.paperworkNotes,
         receivedPaperwork: data.receivedPaperwork || {},
       };
+
+      // Only include paperworkNotes if it's not undefined
+      if (data.paperworkNotes !== undefined) {
+        candidateData.paperworkNotes = data.paperworkNotes;
+      }
+
+      // Remove any undefined values from candidateData
+      Object.keys(candidateData).forEach(key => {
+        if (candidateData[key as keyof Candidate] === undefined) {
+          delete candidateData[key as keyof Candidate];
+        }
+      });
 
       if (editingId) {
         await updateDoc(doc(db, "candidates", editingId), candidateData);
@@ -1209,48 +1221,71 @@ const Candidates: React.FC = () => {
 
           {/* Paperwork and Files */}
           <fieldset className="border border-gray-200 p-3 rounded">
-            <legend className="text-sm font-medium px-2">
-              Paperwork and Files
-            </legend>
-            <div className="flex flex-col space-y-3">
-              <div className="w-full">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Pro-Forma:
-                </label>
-                <div className="flex flex-col">
-                  <div className="flex items-center">
-                    <input
-                      type="file"
-                      onChange={handleProFormaChange}
-                      ref={proFormaRef}
-                      className="input flex-grow text-sm"
-                    />
-                    {(proFormaFile || existingProFormaUrl) && (
-                      <button
-                        type="button"
-                        onClick={removeProForma}
-                        className="text-red-500 ml-2"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
-                    )}
-                  </div>
-                  {(proFormaUrl || existingProFormaUrl) && (
-                    <div className="flex items-center text-sm text-gray-600 mt-1">
-                      <FileText className="h-4 w-4 mr-2" />
-                      <a
-                        href={proFormaUrl || existingProFormaUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 truncate"
-                      >
-                        {proFormaFile?.name || watch("proFormaName")}
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
+  <legend className="text-sm font-medium px-2">
+    Paperwork and Files
+  </legend>
+  <div className="flex flex-col space-y-3">
+    <div className="flex flex-col sm:flex-row sm:space-x-3">
+      <div className="w-full sm:w-1/2">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Pro-Forma:
+        </label>
+        <div className="flex items-center">
+          <input
+            type="file"
+            onChange={handleProFormaChange}
+            ref={proFormaRef}
+            className="input flex-grow text-sm"
+          />
+          {(proFormaFile || existingProFormaUrl) && (
+            <button
+              type="button"
+              onClick={removeProForma}
+              className="text-red-500 ml-2"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+        {(proFormaUrl || existingProFormaUrl) && (
+          <div className="flex items-center text-sm text-gray-600 mt-1">
+            <FileText className="h-4 w-4 mr-2" />
+            <a
+              href={proFormaUrl || existingProFormaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 truncate"
+            >
+              {proFormaFile?.name || watch("proFormaName")}
+            </a>
+          </div>
+        )}
+      </div>
+      <div className="w-full sm:w-1/2 mt-3 sm:mt-0">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Question Category:
+        </label>
+        <select
+          {...register("questionCategory", {
+            required: "Question Category is required",
+          })}
+          className="input w-full"
+        >
+          <option value="">Select Question Category</option>
+          {questionCategories.map((category) => (
+            <option key={category.id} value={category.category}>
+              {category.category}
+            </option>
+          ))}
+        </select>
+        {errors.questionCategory && (
+          <span className="text-red-500 text-sm">
+            {errors.questionCategory.message}
+          </span>
+        )}
+      </div>
+    </div>
+
               <div className="flex flex-col sm:flex-row sm:items-start space-y-3 sm:space-y-0 sm:space-x-3">
                 <div className="w-full sm:w-1/2 border border-gray-200 p-2 rounded">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1436,26 +1471,7 @@ const Candidates: React.FC = () => {
           </fieldset>
 
           {/* Question Category, Asked Question, and Revised Question */}
-          <div className="mt-3">
-            <select
-              {...register("questionCategory", {
-                required: "Question Category is required",
-              })}
-              className="input w-full"
-            >
-              <option value="">Select Question Category</option>
-              {questionCategories.map((category) => (
-                <option key={category.id} value={category.category}>
-                  {category.category}
-                </option>
-              ))}
-            </select>
-            {errors.questionCategory && (
-              <span className="text-red-500 text-sm">
-                {errors.questionCategory.message}
-              </span>
-            )}
-          </div>
+
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <textarea
