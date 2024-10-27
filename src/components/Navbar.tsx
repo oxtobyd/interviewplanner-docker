@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Calendar, Users, Home, Clock, ClipboardList, LogOut } from 'lucide-react'
 import { auth } from '../firebase'
 import { signOut } from 'firebase/auth'
+import PlannerIcon from '../assets/planner-icon.svg'
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate()
@@ -21,8 +22,8 @@ const Navbar: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center">
-            <Calendar className="h-8 w-8 text-blue-600 mr-2" />
-            <span className="text-xl font-semibold">Candidates Panel Planner</span>
+            <img src={PlannerIcon} alt="Planner Icon" className="h-8 w-8 mr-2" />
+            <span className="text-xl font-semibold text-[#0D7A5F]">Candidates Panel Planner</span>
           </Link>
           <div className="flex space-x-4">
             <NavLink to="/" icon={<Home />} text="Dashboard" />

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
-import { Calendar } from 'lucide-react'; // Import the Calendar icon
+import PlannerIcon from '../assets/planner-icon.svg';
+
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -38,9 +39,9 @@ const Login: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         <div>
           <div className="flex justify-center">
-            <Calendar className="h-20 w-20 text-blue-600" /> {/* Planner icon */}
+            <img src={PlannerIcon} alt="Planner Icon" className="h-20 w-20" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-[#0D7A5F]">
             Candidates Panel Planner
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
