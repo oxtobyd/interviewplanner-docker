@@ -373,8 +373,9 @@ const Candidates: React.FC = () => {
       formData.append("proForma", file);
 
       try {
+        const API_URL = import.meta.env.VITE_API_URL;
         const response = await fetch(
-          "http://localhost:3001/api/extract-pro-forma-data",
+          `${API_URL}/api/extract-pro-forma-data`,
           {
             method: "POST",
             body: formData,

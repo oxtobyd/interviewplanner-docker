@@ -624,11 +624,11 @@ const AdviserReport: React.FC = () => {
                   <Controller
                     name={`attributes.${attribute.id}`}
                     control={control}
-                    rules={{ min: { value: 1, message: "Minimum value is 1" }, max: { value: 6, message: "Maximum value is 6" } }}
+                    rules={{ min: { value: 1, message: "Minimum value is 1" }, max: { value: 7, message: "Maximum value is 7" } }}
                     render={({ field }) => (
                       <select {...field} className="input w-full" disabled={showResponseToQuestion}>
                         <option value="">Select Banding</option>
-                        {[1, 2, 3, 4, 5, 6].map(value => (
+                        {[1, 2, 3, 3.5, 4, 5, 6, 7].map(value => (
                           <option key={value} value={value.toString()}>{value}</option>
                         ))}
                       </select>

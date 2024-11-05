@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Edit, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 

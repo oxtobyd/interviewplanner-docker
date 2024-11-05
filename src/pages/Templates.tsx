@@ -48,12 +48,12 @@ const Templates: React.FC = () => {
   const [questionCategories, setQuestionCategories] = useState<{ id: string; category: string }[]>([]);
   const [quillContent, setQuillContent] = useState('');
   const quillRef = useRef<ReactQuill>(null);
-  const [ndas, setNDAs] = useState<{ id: string; title: string; name: string; email: string }[]>([]);
+  //const [ndas, setNDAs] = useState<{ id: string; title: string; name: string; email: string }[]>([]);
 
   const [wordFile, setWordFile] = useState<File | null>(null);
   const wordFileInputRef = useRef<HTMLInputElement>(null);
 
-  const content = watch('content')
+  //const content = watch('content')
 
   const [existingWordFile, setExistingWordFile] = useState<string | null>(null);
 
@@ -85,14 +85,14 @@ const Templates: React.FC = () => {
     fetchQuestionCategories();
   }, []);
 
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'ndas'), (snapshot) => {
-      const ndasData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as { title: string; name: string; email: string } }));
-      setNDAs(ndasData);
-    });
+  //useEffect(() => {
+  //  const unsubscribe = onSnapshot(collection(db, 'ndas'), (snapshot) => {
+  //    const ndasData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as { title: string; name: string; email: string } }));
+  //    setNDAs(ndasData);
+  //  });
 
-    return () => unsubscribe();
-  }, []);
+  //  return () => unsubscribe();
+  //}, []);
 
   // Updated sorting logic
   const sortedTemplates = useMemo(() => {
@@ -226,14 +226,14 @@ const Templates: React.FC = () => {
     }
   };
 
-  const getFieldDescription = (field: string): string => {
-    switch (field) {
-      case 'numberOfInterviews':
-        return 'Total number of interviews for this candidate';
-      default:
-        return '';
-    }
-  }
+  // const getFieldDescription = (field: string): string => {
+  //   switch (field) {
+  //     case 'numberOfInterviews':
+  //       return 'Total number of interviews for this candidate';
+  //   default:
+  //     return '';
+  //   }
+  // }
 
   return (
     <div>

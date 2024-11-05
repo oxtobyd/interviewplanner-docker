@@ -1,0 +1,30 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_HOST=0.0.0.0
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_API_URL=http://backend:3001
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+
+networks:
+  default:
+    driver: bridge

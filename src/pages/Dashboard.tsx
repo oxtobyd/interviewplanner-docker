@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { Users, UserCheck, Calendar, FileText, UserPlus, Clock, Filter, AlertTriangle, UserX, FileQuestion, ClipboardList } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import { collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore'
+import { collection, query, where, getDocs, getCountFromServer} from 'firebase/firestore'
 import { db } from '../firebase'
+import { parseISO, isFuture } from 'date-fns'
 
 interface PanelDate {
   id: string
@@ -17,6 +18,7 @@ const Dashboard: React.FC = () => {
   const [panelDateCount, setPanelDateCount] = useState<number>(0)
   const [panelDates, setPanelDates] = useState<PanelDate[]>([])
   const [selectedPanelDateId, setSelectedPanelDateId] = useState<string>('')
+  const [selectedPanelDate, setSelectedPanelDate] = useState<string>('')
   const navigate = useNavigate()
 
   const [templateCount, setTemplateCount] = useState<number>(0)
@@ -137,9 +139,27 @@ const Dashboard: React.FC = () => {
     fetchCounts()
   }, [selectedPanelDateId])
 
+  useEffect(() => {
+    // Add this new effect to set the next upcoming panel date
+    const setNextPanelDate = () => {
+      //const now = new Date();
+      const nextPanelDate = panelDates
+        .map(date => ({ id: date.id, date: parseISO(date.date) }))
+        .find(date => isFuture(date.date));
+
+      if (nextPanelDate) {
+        setSelectedPanelDate(nextPanelDate.id);
+        setSelectedPanelDateId(nextPanelDate.id);
+      }
+    };
+
+    setNextPanelDate();
+  }, [panelDates]);
+
   const handlePanelDateChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = event.target.value
     setSelectedPanelDateId(selectedId)
+    setSelectedPanelDate(selectedId)
     // Update URL with selected panel date
     if (selectedId) {
       navigate(`?panelDateId=${selectedId}`)
@@ -159,7 +179,7 @@ const Dashboard: React.FC = () => {
         <div className="relative flex-grow max-w-xs">
           <select
             id="panelDateFilter"
-            value={selectedPanelDateId}
+            value={selectedPanelDate}
             onChange={handlePanelDateChange}
             className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
           >

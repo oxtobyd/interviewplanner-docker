@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useForm, SubmitHandler } from 'react-hook-form'
-import { Plus, Edit, Trash2 } from 'lucide-react'
+import { Edit, Trash2 } from 'lucide-react'
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore'
 import { db } from '../firebase' // Ensure this path is correct for your project structure
 
@@ -37,7 +37,8 @@ const Advisers: React.FC = () => {
 
       if (editingId) {
         const adviserRef = doc(db, 'advisers', editingId)
-        await updateDoc(adviserRef, data)
+        const { id, ...updateData } = data
+        await updateDoc(adviserRef, updateData)
         setEditingId(null)
       } else {
         await addDoc(collection(db, 'advisers'), data)
