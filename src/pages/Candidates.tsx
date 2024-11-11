@@ -373,14 +373,10 @@ const Candidates: React.FC = () => {
       formData.append("proForma", file);
 
       try {
-        const API_URL = import.meta.env.VITE_API_URL;
-        const response = await fetch(
-          `${API_URL}/api/extract-pro-forma-data`,
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
+        const response = await fetch('/api/extract-pro-forma-data', {
+          method: "POST",
+          body: formData,
+        });
 
         if (!response.ok) {
           throw new Error("Failed to process file");
