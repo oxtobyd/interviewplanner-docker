@@ -37,6 +37,7 @@ import {
 import { db, storage } from "../firebase";
 import { FirebaseError } from "firebase/app";
 import { useLocation, useNavigate } from "react-router-dom";
+import { extractTextFromFile, extractName, extractEmail, extractDiocese, extractDDOName, extractDDOEmail,extractSponsoringBishop, extractQuestionToPanel, splitName } from '../utils/fileProcessor';
 
 interface CandidateFile {
   name: string;
@@ -361,50 +362,39 @@ const Candidates: React.FC = () => {
     }
   }, [urlPanelDate]);
 
-  const handleProFormaChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setProFormaFile(file);
-      setProFormaUrl(URL.createObjectURL(file));
-
-      const formData = new FormData();
-      formData.append("proForma", file);
-
+  const handleProFormaChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
       try {
-        const response = await fetch('/api/extract-pro-forma-data', {
-          method: "POST",
-          body: formData,
+        const text = await extractTextFromFile(file);
+        console.log('Full extracted text:', text);
+
+        const fullName = extractName(text);
+        console.log('Extracted name:', fullName);
+
+        const { surname, forename } = splitName(fullName);
+
+        const extractedData = {
+          surname: capitalizeWords(surname),
+          forename: capitalizeWords(forename),
+          email: extractEmail(text).toLowerCase(),
+          diocese: capitalizeWords(extractDiocese(text)),
+          ddoName: capitalizeWords(extractDDOName(text)),  // Keeping original case for titles (Rev, etc)
+          ddoEmail: extractDDOEmail(text).toLowerCase(),
+          sponsoringBishop: capitalizeWords(extractSponsoringBishop(text)),
+          questionAsked: extractQuestionToPanel(text),
+        };
+
+        // Set form values
+        Object.entries(extractedData).forEach(([key, value]) => {
+          if (value) {  // Only set if value exists
+            setValue(key as keyof Candidate, value);
+          }
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to process file");
-        }
-
-        const data = await response.json();
-        console.log("Received data from server:", data);
-
-        // Populate the form with the extracted data, formatting names
-        setValue("surname", capitalizeWords(data.surname));
-        setValue("forename", capitalizeWords(data.forename));
-        setValue("email", data.email.toLowerCase());
-        setValue("diocese", capitalizeWords(data.diocese));
-        setValue("sponsoringBishop", capitalizeWords(data.sponsoringBishop));
-        setValue("ddoName", data.ddoName);
-        setValue("ddoEmail", data.ddoEmail.toLowerCase());
-        setValue("questionAsked", data.questionToThePanel);
-
-        // Check if diocese extraction failed
-        if (data.diocese === "Diocese") {
-          setDioceseWarning("Diocese name couldn't be extracted automatically. Please enter it manually.");
-        } else {
-          setDioceseWarning(null);
-        }
-
       } catch (error) {
-        console.error("Error processing Pro-Forma:", error);
-        setError("Failed to process Pro-Forma file");
+        console.error('Error processing Pro-Forma:', error);
+        setError('Error processing the Pro-Forma file');
       }
     }
   };

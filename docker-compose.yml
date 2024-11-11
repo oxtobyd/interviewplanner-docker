@@ -11,25 +11,7 @@ services:
     environment:
       - VITE_HOST=0.0.0.0
       - CHOKIDAR_USEPOLLING=true
-      - VITE_API_URL=http://backend:3001
-    depends_on:
-      - backend
-    networks:
-      - app-network
-
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile.server
-    ports:
-      - "3001:3001"
-    volumes:
-      - ./server:/app
-      - /app/node_modules
-    container_name: backend
-    networks:
-      - app-network
 
 networks:
-  app-network:
+  default:
     driver: bridge
